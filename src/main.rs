@@ -46,7 +46,7 @@ fn get_bytes(path: &str) -> Result<(), Box<dyn Error>> {
 }
 
 fn get_lines(path: &str) -> Result<(), Box<dyn Error>> {
-    let file = File::open(path).expect("failed to open file.");
+    let file = File::open(path)?;
     let reader = BufReader::new(file);
     let count = reader.lines().count();
 
@@ -54,7 +54,7 @@ fn get_lines(path: &str) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 fn get_words(path: &str) -> Result<(), Box<dyn Error>> {
-    let file = File::open(path).expect("failed to open file.");
+    let file = File::open(path)?;
     let reader = BufReader::new(file);
     let mut words_counts = 0;
     for line in reader.lines() {
@@ -66,7 +66,7 @@ fn get_words(path: &str) -> Result<(), Box<dyn Error>> {
 }
 
 fn get_chars(path: &str) -> Result<(), Box<dyn Error>> {
-    let file = File::open(path).expect("failed.");
+    let file = File::open(path)?;
     let reader = BufReader::new(file);
     let mut count = 0;
     for line in reader.lines() {
@@ -85,6 +85,15 @@ fn get_file_name(path: &str) -> String {
         .to_string_lossy();
     return file_name.to_string();
 }
+
+fn all_functions(path: &str) -> Result<(), Box<dyn Error>> {
+    let _ = get_bytes(path);
+    let _ = get_lines(path);
+    let _ = get_words(path);
+    let _ = get_chars(path);
+    Ok(())
+}
+
 fn init(command: &str, path: &str) -> Result<(), Box<dyn Error>> {
     let mut arguments: HashMap<String, CommandInfo> = HashMap::new();
     arguments.insert(
@@ -139,7 +148,10 @@ fn init(command: &str, path: &str) -> Result<(), Box<dyn Error>> {
 
 fn main() -> Result<(), Box<dyn Error>> {
     let args: Vec<String> = env::args().collect();
-    if args.len() > 1 {
+    if args.len() > 1 && !args.get(1).map_or(false, |s| s.contains("-")) {
+        let path = args.get(1).map(|s| s.as_str()).unwrap_or("");
+        let _ = all_functions(path);
+    } else if args.len() > 1 && args.get(1).map_or(false, |s| s.contains("-")) {
         let command = args.get(1).map(|s| s.as_str()).unwrap_or("");
         let path = args.get(2).map(|s| s.as_str()).unwrap_or("");
         let _ = init(command, path)?;
