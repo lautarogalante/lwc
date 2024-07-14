@@ -9,7 +9,6 @@ const PROGRAM_NAME: &str = "lwc";
 
 struct CommandInfo {
     action: Option<fn(&str) -> Result<(), Box<dyn Error>>>,
-    help: Option<fn() -> Result<(), Box<dyn Error>>>,
 }
 
 fn get_help() -> Result<(), Box<dyn Error>> {
@@ -87,74 +86,69 @@ fn get_file_name(path: &str) -> String {
 }
 
 fn all_functions(path: &str) -> Result<(), Box<dyn Error>> {
-    let _ = get_bytes(path);
-    let _ = get_lines(path);
-    let _ = get_words(path);
-    let _ = get_chars(path);
+    get_bytes(path)?;
+    get_lines(path)?;
+    get_words(path)?;
+    get_chars(path)?;
     Ok(())
 }
 
-fn init(command: &str, path: &str) -> Result<(), Box<dyn Error>> {
+fn init(mut args: Vec<String>) -> Result<(), Box<dyn Error>> {
     let mut arguments: HashMap<String, CommandInfo> = HashMap::new();
-    arguments.insert(
-        "-h".to_string(),
-        CommandInfo {
-            action: None,
-            help: Some(get_help),
-        },
-    );
+    arguments.insert("-h".to_string(), CommandInfo { action: None });
     arguments.insert(
         "-c".to_string(),
         CommandInfo {
             action: Some(get_bytes),
-            help: None,
         },
     );
     arguments.insert(
         "-l".to_string(),
         CommandInfo {
             action: Some(get_lines),
-            help: None,
         },
     );
     arguments.insert(
         "-w".to_string(),
         CommandInfo {
             action: Some(get_words),
-            help: None,
         },
     );
     arguments.insert(
         "-m".to_string(),
         CommandInfo {
             action: Some(get_chars),
-            help: None,
         },
     );
 
-    if let Some(cmd_op) = arguments.get(command) {
-        if let Some(action) = cmd_op.action {
-            action(path)?;
+    let path = args.pop();
+    for flag in args.iter() {
+        if let Some(cmd_op) = arguments.get(flag) {
+            if let Some(action) = cmd_op.action {
+                if let Some(path_arg) = &path {
+                    action(path_arg)?;
+                } else {
+                    println!("not path provided.");
+                }
+            }
+        } else {
+            if flag != PROGRAM_NAME {
+                println!("unrecognized argument: {}", flag);
+            }
         }
-        if let Some(help) = cmd_op.help {
-            let _ = help();
-        }
-    } else {
-        println!("unrecognized argument: {}", command)
     }
-
     Ok(())
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
     let args: Vec<String> = env::args().collect();
-    if args.len() > 1 && !args.get(1).map_or(false, |s| s.contains("-")) {
-        let path = args.get(1).map(|s| s.as_str()).unwrap_or("");
-        let _ = all_functions(path);
+    if args.get(1).map_or(false, |s| s.contains("-h")) || args.len() == 1 {
+        get_help()?;
     } else if args.len() > 1 && args.get(1).map_or(false, |s| s.contains("-")) {
-        let command = args.get(1).map(|s| s.as_str()).unwrap_or("");
-        let path = args.get(2).map(|s| s.as_str()).unwrap_or("");
-        let _ = init(command, path)?;
+        init(args)?;
+    } else {
+        let path = args.get(1).map(|s| s.as_str()).unwrap_or("");
+        all_functions(path)?;
     }
     Ok(())
 }
